@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="filemanager/filemanager.vcxproj" Id="58d93ac9-234f-48ba-a9e5-ba734c2ed470" />
+</Solution>

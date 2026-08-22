@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <sstream>
 
 #include "plusaes.hpp"
 
@@ -33,8 +34,10 @@ class NPKmanip // all the file manipulation functions
 std::ifstream readFile;
 
 
-private: //file header
+private: //file header container
 	std::vector<unsigned char> NPKheader;
+	std::vector <unsigned char> dataBuffer;
+	unsigned int offsetNumber = 0;
 
 	unsigned char NPKver[8] = {}; // not needed yet
 	unsigned char iv[16] = {};
@@ -52,25 +55,31 @@ public:
 		int headerSize = 32;
 		while (readFile >> byte && headerSize >= 0) {
 			NPKheader.push_back(byte);
+			//std::cout << std::hex << (unsigned int)byte;
 			headerSize--;
 		}
 		for (int i = 8; i < 24; i++) {
 			iv[i - 8] = NPKheader[i];
 		}
-		for (int i = 32; i > 28; i--) {
+		for (int i = 28; i < 32; i++) {
 			dataOffset[i - 28] = NPKheader[i];
+			std::cout << (unsigned int)dataOffset[i- 28];
 		}
+		std::stringstream ss;
+		ss << (unsigned int)dataOffset;
+		ss >> offsetNumber;
+		//std::cout << offsetNumber;
 	}
 
 	void decrypt(std::ifstream &file, int game, unsigned int startOffset, unsigned int endOffset) {
-		std::vector<unsigned int> fileArr;
+		std::vector<unsigned char> fileArr;
 		readFile.seekg(startOffset);
-		for (int i = startOffset; i < endOffset; i++) {
+		for (unsigned int i = startOffset; i < endOffset; i++) {
 			readFile >> byte;
 			fileArr.push_back(byte);
 		}
-
-		//plusaes::decrypt_cbc(&fileArr[0], fileArr.size(), &games[game].key[0], games[game].key.size(), );
+		std::vector<unsigned char> dataBuffer(fileArr.size());
+		plusaes::decrypt_cbc(&fileArr[0], fileArr.size(), &games[game].key[0], games[game].key.size(), &iv, &dataBuffer[0], fileArr.size(), NULL);
 	}
 
 	void getEntries() {
@@ -97,7 +106,7 @@ int main()
 	
 	NPKmanip NPK(filePath);
 	NPK.file = filePath;
-	std::cout << NPK.file;
+	//std::cout << NPK.file;
 
 
 	NPK.readHeader();

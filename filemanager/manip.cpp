@@ -4,10 +4,12 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <cstring>
 
 #include "plusaes.hpp"
 
-char byte;
+unsigned char byte;
+std::string filePath;
 
 struct NPKgame {
 	std::string name;
@@ -24,20 +26,38 @@ NPKgame games[] = {
 	// more to be added when game key is requested/found
 };
 
-class NPKentry {
+struct NPKentry {
+private:
+	unsigned int int_fileNameLength = 0;
 public:
-	
+	unsigned char fileNameLength[3];
+
+	std::vector<unsigned char> fileName;
+	NPKentry() {
+		int_fileNameLength = (unsigned int)fileNameLength[0] + (unsigned int)fileNameLength[1] + (unsigned int)fileNameLength[2];
+	}
+
+	unsigned char realSize[4];
+
+	unsigned char SHA256[32]; // not important for now
+
+	unsigned char sectionSize[2];
+
+	struct segmentData {
+
+	};
+
 };
+
 
 class NPKmanip // all the file manipulation functions
 {
-std::ifstream readFile;
 
 
 private: //file header container
 	std::vector<unsigned char> NPKheader;
 	std::vector <unsigned char> dataBuffer;
-	unsigned int offsetNumber = 0;
+	std::string absoluteFilePath;
 
 	unsigned char NPKver[8] = {}; // not needed yet
 	unsigned char iv[16] = {};
@@ -49,37 +69,49 @@ public:
 		readFile.open(filename, std::ios::binary);
 	}
 	std::string file;
+	unsigned int dataOffsetDec = NULL;
 
+	std::ifstream readFile;
+	std::ofstream writeFile;
+
+public:
 	void readHeader()
 	{
 		int headerSize = 32;
-		while (readFile >> byte && headerSize >= 0) {
+		while (readFile >> std::noskipws >> byte && headerSize > 0) {
 			NPKheader.push_back(byte);
-			//std::cout << std::hex << (unsigned int)byte;
+			//std::cout << byte << " ";
 			headerSize--;
 		}
 		for (int i = 8; i < 24; i++) {
 			iv[i - 8] = NPKheader[i];
+			
 		}
 		for (int i = 28; i < 32; i++) {
 			dataOffset[i - 28] = NPKheader[i];
-			std::cout << (unsigned int)dataOffset[i- 28];
+			//std::cout << (unsigned int)dataOffset[i- 28] << " ";
 		}
-		std::stringstream ss;
-		ss << (unsigned int)dataOffset;
-		ss >> offsetNumber;
-		//std::cout << offsetNumber;
+		std::memcpy(&dataOffsetDec, dataOffset, 4);
+		//std::cout << dataOffsetDec;
 	}
 
 	void decrypt(std::ifstream &file, int game, unsigned int startOffset, unsigned int endOffset) {
 		std::vector<unsigned char> fileArr;
 		readFile.seekg(startOffset);
-		for (unsigned int i = startOffset; i < endOffset; i++) {
+		for (unsigned int i = 0; i < endOffset; i++) {
 			readFile >> byte;
 			fileArr.push_back(byte);
 		}
 		std::vector<unsigned char> dataBuffer(fileArr.size());
-		plusaes::decrypt_cbc(&fileArr[0], fileArr.size(), &games[game].key[0], games[game].key.size(), &iv, &dataBuffer[0], fileArr.size(), NULL);
+		//std::cout << " " << dataBuffer.size() << " " << fileArr.size();
+		plusaes::decrypt_cbc(&fileArr[0], fileArr.size(), &games[game].key[0], 32, &iv, &dataBuffer[0], dataBuffer.size(), NULL);
+		//absoluteFilePath = filePath.erase(filePath.rfind("\\") + 1);
+		std::cout << "File decrypted.\n";
+		writeFile.open(filePath + "~", std::ios::binary);
+		for (unsigned int i = 0; i < dataBuffer.size(); i++) {
+			writeFile << dataBuffer[i];
+		}
+		std::cout << "File finished writing at path " << filePath + "~";
 	}
 
 	void getEntries() {
@@ -94,14 +126,12 @@ public:
 int main()
 {
 
-
-	std::cout << "Please insert the path of your NPK file: ";
-	std::string filePath;
-	std::getline(std::cin, filePath);
-
-	if (!std::filesystem::exists(filePath)) {
-		std::cout << "Your file path is not valid/doesn't exist! \n";
-		exit(1);
+	while (!std::filesystem::exists(filePath)) {
+		std::cout << "\nPlease insert the path of your NPK file: ";
+		std::getline(std::cin, filePath);
+		if (!std::filesystem::exists(filePath)) {
+			std::cout << "\nYour file path is not valid/doesn't exist! \n";
+		}
 	}
 	
 	NPKmanip NPK(filePath);
@@ -110,6 +140,7 @@ int main()
 
 
 	NPK.readHeader();
+	NPK.decrypt(NPK.readFile, 0, 32, NPK.dataOffsetDec);
 	
 
 

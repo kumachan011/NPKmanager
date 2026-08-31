@@ -7,6 +7,7 @@
 #include <cstring>
 
 #include "plusaes.hpp"
+#include "zstd.h"
 
 unsigned char byte;
 unsigned long int fileSize;
@@ -32,7 +33,7 @@ struct NPKentry {
 public:
 	std::vector<unsigned char> fileNameLength; // first 3 bytes, if byte 1 is 01 that means the file is compressed (mostly game dialogue
 
-	std::string fileName; // represents the length pulled from fileNameLength
+	std::string fileName;// represents the length pulled from fileNameLength
 
 	std::vector<unsigned char> realSize; // the files real size after decryption and compression, should be 4 bytes RIGHT after fileName, little endian
 
@@ -44,13 +45,14 @@ public:
 		std::vector<unsigned char> offset; // the offset of the ACTUAL data of the entry in the file
 
 		std::vector<unsigned char> alignedSize; // how big the file is with PKCS5 padding (fancy word for adding numbers at the
-												//end so the decryption block is 16 bytes)
+		//end so the decryption block is 16 bytes)
 
 		std::vector<unsigned char> compressedSize; // how big the file actually is without the padding (will be important for decompression if thats the case)
 	};
-
-	std::string fn = this->fileName.erase(0, this->fileName.rfind("/") + 1);
 };
+
+NPKentry entry;
+NPKentry::segmentData segment;
 
 
 class NPKmanip // all the file manipulation functions
@@ -104,6 +106,10 @@ public:
 	void decrypt(std::ifstream &file, int game, unsigned int startOffset, unsigned int endOffset, int type, std::string fileName) {
 		
 		readFile.seekg(startOffset);
+
+		std::replace(fileName.begin(), fileName.end(), '/', '\\');
+		unsigned long padded_size;
+
 		for (unsigned int i = 0; i < endOffset; i++) {
 			readFile >> byte;
 			fileArr.push_back(byte);
@@ -111,20 +117,31 @@ public:
 
 		if (type == 0) {
 			entryBuffer.resize(fileArr.size());
-			plusaes::decrypt_cbc(&fileArr[0], (long)fileArr.size(), &games[game].key[0], (long)32, &iv, &entryBuffer[0], (long)fileArr.size(), NULL);
+			plusaes::decrypt_cbc(&fileArr[0], (long)fileArr.size(), &games[game].key[0], (long)32, &iv, &entryBuffer[0], (long)fileArr.size(), &padded_size);
 
-			//writeFile.open("C:\\Users\\Kuma\\Desktop\\fun\\fun.npk", std::ios::binary);
-			//for (unsigned int i = 0; i < fileArr.size(); i++) {
-				//writeFile << entryBuffer[i];
-			//}
-			writeFile.close();
+			/*writeFile.open("C:\\Users\\Kuma\\Desktop\\fun\\fun.npk", std::ios::binary);
+			for (unsigned int i = 0; i < fileArr.size(); i++) {
+				writeFile << entryBuffer[i];
+			}*/
+			//writeFile.close();
 			fileArr.clear();
 		}
 		else if (type == 1) {
 			entryDataBuffer.resize(fileArr.size());
-			plusaes::decrypt_cbc(&fileArr[0], (long)fileArr.size(), &games[game].key[0], (long)32, &iv, &entryDataBuffer[0], (long)fileArr.size(), 0);
-			writeFile.open("C:\\Users\\Kuma\\Desktop\\fun\\" + fileName, std::ios::binary);
-			for (unsigned int i = 0; i < fileArr.size(); i++) {
+			plusaes::decrypt_cbc(&fileArr[0], (long)fileArr.size(), &games[game].key[0], (long)32, &iv, &entryDataBuffer[0], (long)fileArr.size(), &padded_size);
+			entryDataBuffer.resize(entryDataBuffer.size() - padded_size);
+			std::string path = fileName.substr(0, fileName.rfind("\\") + 1);
+			std::string absoluteP = filePath.substr(0, filePath.rfind("\\") + 1);
+
+			if (!std::filesystem::exists(absoluteP + path)) {
+				std::filesystem::create_directories(absoluteP + path);
+			}
+			writeFile.open(absoluteP + fileName, std::ios::binary);
+			if (entryDataBuffer[0] == 40 && entryDataBuffer[1] == 181 && entryDataBuffer[2] == 47 && entryDataBuffer[3] == 253) {
+				entryDataBuffer = decompress(entryDataBuffer);
+				
+			}
+			for (unsigned int i = 0; i < entryDataBuffer.size(); i++) {
 				writeFile << entryDataBuffer[i];
 			}
 			writeFile.close();
@@ -162,8 +179,6 @@ public:
 				std::vector<unsigned char>(tempEntryData.begin() + 39 + fLen, tempEntryData.begin() + 41 + fLen)
 			};
 
-			//std::string fn = "f.png";//std::filesystem::path(entry.fileName).filename().string();
-
 			if ((unsigned int)entry.sectionSize[0] > 1) {
 				std::cout << "\nSection size over 1, enabling file sectioning...";
 				for (unsigned int i = 0; i < (unsigned int)entry.sectionSize[0]; i++) {
@@ -176,10 +191,8 @@ public:
 					unsigned long endOffsetDec;
 					std::memcpy(&startOffsetDec, &segment->offset, 8);
 					std::memcpy(&endOffsetDec, &segment->alignedSize, 4);
-					//std::cout << startOffsetDec << " " << endOffsetDec;
-					//decrypt(readFile, 0, startOffsetDec + headerSize, endOffsetDec + headerSize, std::string(entry.fileName.begin(), entry.fileName.end()));
-					
-					//decrypt(NPK.readFile, )
+
+
 					sectionAmount++;
 					sectionFileAmount++;
 				}
@@ -191,19 +204,38 @@ public:
 				};
 				std::memcpy(&startOffsetDec, segment.offset.data(), segment.offset.size());
 				std::memcpy(&endOffsetDec, segment.alignedSize.data(), segment.alignedSize.size());
-				decrypt(readFile, 0, startOffsetDec, endOffsetDec, 1, entry.fn);
+
+				decrypt(readFile, 0, startOffsetDec, endOffsetDec, 1, entry.fileName);
 				sectionAmount = 1;
 			}
 
 			nextEntryOffset = nextEntryOffset + fLen + 43 + sectionAmount * 20;
-			std::cout << "Written entry " << entryIncrementor << " | " << entryNumberDec << ": " << entry.fn <<"\n";
+			std::cout << "Written entry " << entryIncrementor + 1 << " | " << entryNumberDec << ": " << entry.fileName <<"\n";
 			tempEntryData.clear();
 		}
-		std::cout << "\nDecrypted file had " << entryNumberDec << " entries, with a total of " << sectionFileAmount << " files over 64kb.\n";
+		std::cout << "\nDecrypted file had " << entryNumberDec << " entries and " << sectionFileAmount << " entries with more than a single section size.\n";
 	}
 
-	void decompress() {
-		//blahblahblah
+	std::vector<unsigned char> decompress(std::vector<unsigned char> entry) {
+		unsigned long long decompressedSize =
+			ZSTD_getFrameContentSize(
+				entry.data(),
+				entry.size() 
+			);
+		std::vector<unsigned char> decompressedData(decompressedSize);
+
+		size_t const result = ZSTD_decompress(
+			decompressedData.data(),
+			decompressedData.size(),
+			entry.data(),
+			entry.size()
+		);
+
+		if (ZSTD_isError(result)) {
+			std::cout << ZSTD_getErrorName(result) << '\n';
+		}
+
+		return decompressedData;
 	}
 };
 
@@ -224,6 +256,7 @@ int main()
 	NPKmanip NPK(filePath);
 
 	NPK.readHeader();
+	std::cout << NPK.dataOffsetDec;
 	std::string null = "Null";
 	NPK.decrypt(NPK.readFile, 0, headerSize, NPK.dataOffsetDec, 0, null);
 	NPK.getEntries(NPK.entryBuffer);

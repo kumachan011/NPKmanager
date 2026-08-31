@@ -115,6 +115,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>MaxSpeed</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <AdditionalIncludeDirectories>"C:\Users\Kuma\Desktop\lib"</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -135,6 +136,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <Optimization>MaxSpeed</Optimization>
+      <AdditionalIncludeDirectories>"C:\Users\Kuma\Desktop\lib"</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -148,6 +150,18 @@
     <ClInclude Include="plusaes.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\Desktop\lib\common\debug.c" />
+    <ClCompile Include="..\..\..\..\Desktop\lib\common\entropy_common.c" />
+    <ClCompile Include="..\..\..\..\Desktop\lib\common\error_private.c" />
+    <ClCompile Include="..\..\..\..\Desktop\lib\common\fse_decompress.c" />
+    <ClCompile Include="..\..\..\..\Desktop\lib\common\pool.c" />
+    <ClCompile Include="..\..\..\..\Desktop\lib\common\threading.c" />
+    <ClCompile Include="..\..\..\..\Desktop\lib\common\xxhash.c" />
+    <ClCompile Include="..\..\..\..\Desktop\lib\common\zstd_common.c" />
+    <ClCompile Include="..\..\..\..\Desktop\lib\decompress\huf_decompress.c" />
+    <ClCompile Include="..\..\..\..\Desktop\lib\decompress\zstd_ddict.c" />
+    <ClCompile Include="..\..\..\..\Desktop\lib\decompress\zstd_decompress.c" />
+    <ClCompile Include="..\..\..\..\Desktop\lib\decompress\zstd_decompress_block.c" />
     <ClCompile Include="decryptfile.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>

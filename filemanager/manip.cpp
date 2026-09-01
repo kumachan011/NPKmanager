@@ -6,13 +6,14 @@
 #include <sstream>
 #include <cstring>
 
-#include "plusaes.hpp"
-#include "zstd.h"
+#include "plusaes.hpp" // uses the header only plusaes AES decryption/encryption
+#include "zstd.h" // facebook/zsdt
 
 unsigned char byte;
 unsigned long int fileSize;
 const int headerSize = 32;
 std::string filePath;
+unsigned int gameChoice;
 
 struct NPKgame {
 	std::string name;
@@ -25,7 +26,14 @@ NPKgame games[] = {
 		0xAE, 0x6B, 0xDF, 0x3D, 0x8C, 0x90, 0x26, 0x2F,
 		0xF2, 0x50, 0x25, 0xA1, 0x2D, 0xB5, 0x39, 0xF9,
 		0xCF, 0xD6, 0xE8, 0xE5, 0x79, 0x75, 0xB7, 0x98 }
+	},
+	{"Tokyo Necro", {
+		0x92, 0x0A, 0x2C, 0xBD, 0x4A, 0xF0, 0x19, 0xC9,
+		0x5F, 0x4E, 0x94, 0x2D, 0x05, 0xF9, 0x06, 0xC7,
+		0xA6, 0x81, 0x26, 0xCD, 0x85, 0x84, 0x6E, 0x5A,
+		0x66, 0x92, 0xC7, 0xCA, 0x04, 0x83, 0xD1, 0x85
 	}
+}
 	// more to be added when game key is requested/found
 };
 
@@ -62,6 +70,7 @@ class NPKmanip // all the file manipulation functions
 private: // will need to improve this
 	std::vector<unsigned char> NPKheader;
 	std::vector<unsigned char> fileArr;
+	std::vector<unsigned char> bigFile;
 
 	unsigned char NPKver[8] = {}; // not needed yet
 	unsigned char iv[16] = {};
@@ -104,10 +113,8 @@ public:
 	}
 
 	void decrypt(std::ifstream &file, int game, unsigned int startOffset, unsigned int endOffset, int type, std::string fileName) {
-		
-		readFile.seekg(startOffset);
 
-		std::replace(fileName.begin(), fileName.end(), '/', '\\');
+		readFile.seekg(startOffset);
 		unsigned long padded_size;
 
 		for (unsigned int i = 0; i < endOffset; i++) {
@@ -125,28 +132,35 @@ public:
 			}*/
 			//writeFile.close();
 			fileArr.clear();
-		}
-		else if (type == 1) {
+
+		} else if (type == 1) {
 			entryDataBuffer.resize(fileArr.size());
+			std::cout << "Decrypting... ";
 			plusaes::decrypt_cbc(&fileArr[0], (long)fileArr.size(), &games[game].key[0], (long)32, &iv, &entryDataBuffer[0], (long)fileArr.size(), &padded_size);
 			entryDataBuffer.resize(entryDataBuffer.size() - padded_size);
-			std::string path = fileName.substr(0, fileName.rfind("\\") + 1);
-			std::string absoluteP = filePath.substr(0, filePath.rfind("\\") + 1);
 
-			if (!std::filesystem::exists(absoluteP + path)) {
-				std::filesystem::create_directories(absoluteP + path);
-			}
-			writeFile.open(absoluteP + fileName, std::ios::binary);
 			if (entryDataBuffer[0] == 40 && entryDataBuffer[1] == 181 && entryDataBuffer[2] == 47 && entryDataBuffer[3] == 253) {
+				std::cout << " Decompressing... ";
 				entryDataBuffer = decompress(entryDataBuffer);
-				
 			}
+
 			for (unsigned int i = 0; i < entryDataBuffer.size(); i++) {
-				writeFile << entryDataBuffer[i];
+				bigFile.push_back(entryDataBuffer[i]);
 			}
-			writeFile.close();
+			entryDataBuffer.clear();
 			fileArr.clear();
 		}
+	}
+
+	void writeFileFunc(std::string path, std::string fileName, std::vector<unsigned char> fileData) {
+		if (!std::filesystem::exists(path + fileName.substr(0, fileName.rfind("\\") + 1))) {
+			std::filesystem::create_directories(path + fileName.substr(0, fileName.rfind("\\") + 1));
+		}
+		writeFile.open(path + fileName, std::ios::binary);
+		for (unsigned int i = 0; i < fileData.size(); i++) {
+			writeFile << fileData[i];
+		}
+		writeFile.close();
 	}
 
 	void getEntries(std::vector<unsigned char> &entries) {
@@ -154,9 +168,6 @@ public:
 		int entryIncrementor = 0;
 		int sectionAmount = 0;
 		int sectionFileAmount = 0;
-
-		unsigned long long startOffsetDec = 0;
-		unsigned long endOffsetDec = 0;
 		
 		std::vector<unsigned char> tempEntryData;
 
@@ -166,8 +177,13 @@ public:
 			sectionAmount = 0;
 
 			unsigned int fLen = (unsigned int)entries[nextEntryOffset + 1];
+			unsigned short sectionSizeDec;
 
-			for (unsigned int i = nextEntryOffset; i < fLen + nextEntryOffset + 63; i++) {
+			std::vector<unsigned char> tempSecSize(entries.begin() + nextEntryOffset + 39 + fLen, entries.begin() + nextEntryOffset + 41 + fLen);
+			std::memcpy(&sectionSizeDec, tempSecSize.data(), tempSecSize.size());
+
+
+			for (unsigned int i = nextEntryOffset; i < fLen + nextEntryOffset + 63  + (sectionSizeDec * 20); i++) {
 				tempEntryData.push_back(entries[i]);
 			}
 
@@ -179,39 +195,39 @@ public:
 				std::vector<unsigned char>(tempEntryData.begin() + 39 + fLen, tempEntryData.begin() + 41 + fLen)
 			};
 
-			if ((unsigned int)entry.sectionSize[0] > 1) {
-				std::cout << "\nSection size over 1, enabling file sectioning...";
-				for (unsigned int i = 0; i < (unsigned int)entry.sectionSize[0]; i++) {
-					NPKentry::segmentData segment[]{
-						std::vector<unsigned char>(tempEntryData.begin() + 43 + fLen, tempEntryData.begin() + 51 + fLen),
-						std::vector<unsigned char>(tempEntryData.begin() + 51 + fLen, tempEntryData.begin() + 55 + fLen),
-						std::vector<unsigned char>(tempEntryData.begin() + 55 + fLen, tempEntryData.begin() + 57 + fLen)
-					};
-					unsigned long startOffsetDec;
-					unsigned long endOffsetDec;
-					std::memcpy(&startOffsetDec, &segment->offset, 8);
-					std::memcpy(&endOffsetDec, &segment->alignedSize, 4);
+			if (sectionSizeDec > 1) {
+				std::cout << "Section size over 1, enabling file sectioning... ";
+				sectionFileAmount++;
+			}
 
+			for (unsigned int i = 0; i < sectionSizeDec; i++) {
 
-					sectionAmount++;
-					sectionFileAmount++;
-				}
-			} else if ((unsigned int)entry.sectionSize[0] == 1) {
-				NPKentry::segmentData segment{	
-					std::vector<unsigned char>(tempEntryData.begin() + 43 + fLen, tempEntryData.begin() + 51 + fLen),
-					std::vector<unsigned char>(tempEntryData.begin() + 51 + fLen, tempEntryData.begin() + 55 + fLen),
-					std::vector<unsigned char>(tempEntryData.begin() + 55 + fLen, tempEntryData.begin() + 57 + fLen)
+				NPKentry::segmentData segment = {
+					std::vector<unsigned char>(tempEntryData.begin() + 43 + fLen + (sectionAmount * 20), tempEntryData.begin() + 51 + fLen + (sectionAmount * 20)),
+					std::vector<unsigned char>(tempEntryData.begin() + 51 + fLen + (sectionAmount * 20), tempEntryData.begin() + 55 + fLen + (sectionAmount * 20)),
+					std::vector<unsigned char>(tempEntryData.begin() + 55 + fLen + (sectionAmount * 20), tempEntryData.begin() + 57 + fLen + (sectionAmount * 20))
 				};
+				unsigned long long startOffsetDec;
+				unsigned long endOffsetDec;
+
 				std::memcpy(&startOffsetDec, segment.offset.data(), segment.offset.size());
 				std::memcpy(&endOffsetDec, segment.alignedSize.data(), segment.alignedSize.size());
 
-				decrypt(readFile, 0, startOffsetDec, endOffsetDec, 1, entry.fileName);
-				sectionAmount = 1;
-			}
+				//std::cout << startOffsetDec << " " << endOffsetDec << " " << sectionAmount * 20 << " next ";
 
+				decrypt(readFile, gameChoice, startOffsetDec, endOffsetDec, 1, entry.fileName);
+
+				sectionAmount++;
+				
+			}
 			nextEntryOffset = nextEntryOffset + fLen + 43 + sectionAmount * 20;
 			std::cout << "Written entry " << entryIncrementor + 1 << " | " << entryNumberDec << ": " << entry.fileName <<"\n";
+
+			std::string absoluteP = filePath.substr(0, filePath.rfind("\\") + 1);
+			std::replace(entry.fileName.begin(), entry.fileName.end(), '/', '\\');
+			writeFileFunc(absoluteP, entry.fileName, bigFile);
 			tempEntryData.clear();
+			bigFile.clear();
 		}
 		std::cout << "\nDecrypted file had " << entryNumberDec << " entries and " << sectionFileAmount << " entries with more than a single section size.\n";
 	}
@@ -241,14 +257,32 @@ public:
 
 int main()
 {
+	bool next = false;
+	while (next == false) {
 
+		std::cout << "Please select the game you are working with: \n";
+		for (unsigned int i = 0; i < 2; i++) {
+			std::cout << "\n   " << i << ":    " << games[i].name << "\n";
+		}
+
+		std::cout << "\n";
+		std::cin >> gameChoice;
+		if (gameChoice < 2) {
+			next = true;
+		} else {
+			std::cout << "\nNot a valid game choice!\n";
+			system("pause");
+			system("cls");
+		}
+	}
 	while (std::filesystem::path(filePath).extension().string() != ".npk") {
 		std::cout << "\nPlease write/drop the path of your NPK file: ";
 		std::getline(std::cin, filePath);
 
 		if (!std::filesystem::exists(filePath)) {
 			std::cout << "\nYour file path is not valid/doesn't exist!";
-		} else if (std::filesystem::path(filePath).extension().string() != ".npk") {
+		}
+		else if (std::filesystem::path(filePath).extension().string() != ".npk") {
 			std::cout << "\nWritten/dropped file is not an NPK!";
 		}
 	}
@@ -256,9 +290,9 @@ int main()
 	NPKmanip NPK(filePath);
 
 	NPK.readHeader();
-	std::cout << NPK.dataOffsetDec;
 	std::string null = "Null";
-	NPK.decrypt(NPK.readFile, 0, headerSize, NPK.dataOffsetDec, 0, null);
+	NPK.decrypt(NPK.readFile, gameChoice, headerSize, NPK.dataOffsetDec, 0, null);
+	std::cout << "\nEntry array decrypted... Starting file entries decryption.\n";
 	NPK.getEntries(NPK.entryBuffer);
 
 

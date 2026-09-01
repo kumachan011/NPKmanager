@@ -115,7 +115,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>MaxSpeed</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>"C:\Users\Kuma\Desktop\lib"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Kuma\source\repos\filemanager\filemanager\lib</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -136,7 +136,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>"C:\Users\Kuma\Desktop\lib"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Kuma\source\repos\filemanager\filemanager\lib</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

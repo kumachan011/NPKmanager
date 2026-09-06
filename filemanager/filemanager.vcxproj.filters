@@ -18,14 +18,14 @@
     <ClInclude Include="plusaes.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="information.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="repack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="decryptfile.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="manip.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\Desktop\lib\common\zstd_common.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -47,9 +47,6 @@
     <ClCompile Include="..\..\..\..\Desktop\lib\common\threading.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\Desktop\lib\common\xxhash.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\Desktop\lib\decompress\zstd_decompress_block.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -60,6 +57,39 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\Desktop\lib\decompress\zstd_decompress.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="program.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="unpack.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib-1.3.2\adler32.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib-1.3.2\crc32.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib-1.3.2\deflate.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib-1.3.2\inffast.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib-1.3.2\inflate.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib-1.3.2\inftrees.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib-1.3.2\trees.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib-1.3.2\zutil.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\common\xxhash.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -80,11 +80,6 @@ public:
 		if (type == 0) { // decrypt entries and offsets
 			entryBuffer.resize(fileArr.size());
 			plusaes::decrypt_cbc(&fileArr[0], (long)fileArr.size(), &games[game].key[0], (long)32, &iv, &entryBuffer[0], (long)fileArr.size(), &padded_size);
-			/*writeFile.open("C:\\Users\\Kuma\\Desktop\\fun\\f.npk", std::ios::binary);
-			for (unsigned int i = 0; i < entryBuffer.size(); i++) {
-				writeFile << entryBuffer[i];
-			}
-			writeFile.close();*/
 			fileArr.clear();
 
 		} else if (type == 1) { // decrypt entry data itself
@@ -140,6 +135,7 @@ public:
 			}
 
 			NPKentry entry{
+				false,
 				std::vector<unsigned char>(tempEntryData.begin(), tempEntryData.begin() + 3),
 				std::string(tempEntryData.begin() + 3, tempEntryData.begin() + 3 + fLen),
 				std::vector<unsigned char>(tempEntryData.begin() + 3 + fLen, tempEntryData.begin() + 7 + fLen),
@@ -168,11 +164,7 @@ public:
 
 				if (sectionSizeDec > 1) {
 					float percentage = (float)(((i + 1) / (float)sectionSizeDec) * 100);
-					std::cout << "Writing file entry " << entryIncrementor + 1 << "|" << entryNumberDec << ": " << entry.fileName << "\nEntry progress: ";
-					progressBar(10, percentage);
-					std::cout << "\nTotal file progress: ";
-					progressBar(25, filePercentage);
-					std::cout << "\n\n";
+					std::cout << "Writing file entry " << entryIncrementor + 1 << "|" << entryNumberDec << ": " << entry.fileName << "\n";
 				}
 			}
 
@@ -185,8 +177,7 @@ public:
 			tempEntryData.clear();
 			bigFile.clear();
 
-			std::cout << "Written entry " << entryIncrementor + 1 << " | " << entryNumberDec << ": " << entry.fileName <<"\nTotal file progress: ";
-			progressBar(25, filePercentage);
+			std::cout << "Written entry " << entryIncrementor + 1 << " | " << entryNumberDec << ": " << entry.fileName << "\n";
 		}
 
 		// end extraction

@@ -80,11 +80,11 @@ public:
 		if (type == 0) { // decrypt entries and offsets
 			entryBuffer.resize(fileArr.size());
 			plusaes::decrypt_cbc(&fileArr[0], (long)fileArr.size(), &games[game].key[0], (long)32, &iv, &entryBuffer[0], (long)fileArr.size(), &padded_size);
-			writeFile.open("C:\\Users\\Kuma\\Desktop\\fun\\f.npk", std::ios::binary);
+			/*writeFile.open("C:\\Users\\Kuma\\Desktop\\fun\\f.npk", std::ios::binary);
 			for (unsigned int i = 0; i < entryBuffer.size(); i++) {
 				writeFile << entryBuffer[i];
 			}
-			writeFile.close();
+			writeFile.close();*/
 			fileArr.clear();
 
 		} else if (type == 1) { // decrypt entry data itself

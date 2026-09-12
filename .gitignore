@@ -364,3 +364,4 @@ FodyWeavers.xsd
 /filemanager/lib
 /filemanager/zlib-1.3.2
 /filemanager/plusaes.hpp
+/filemanager/picosha2.h

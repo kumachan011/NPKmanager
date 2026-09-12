@@ -12,16 +12,24 @@
 #include <chrono>
 #include <conio.h>
 #include <algorithm>
+#include <intrin.h>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
 
 #include "plusaes.hpp" // uses the header only plusaes AES decryption/encryption
 #include "zstd.h" // facebook/zsdt
 #include "zlib.h" //uses the official library from zlib.net for the INFLATE and DEFLATE algorithm
+#include "picosha2.h"// PicoSHA2 from okdshin on github
+
+#include "NUTpatcher.h" // solution to plug-and-play NUT dialogue file editting. files can be edited straight from the notepad with minimal to no hex manipulation.
 #endif
 
 static bool stopProgram = false;
 
 static unsigned char byte;
 static const short headerSize = 32;
+const int ivSize = 16;
 
 static unsigned long int fileSize;
 static std::string filePath;
@@ -29,8 +37,8 @@ static unsigned int gameChoice;
 
 inline std::vector<unsigned char> decompressZSTD(std::vector<unsigned char>&);
 inline std::vector<unsigned char> decompressZLIB(std::vector<unsigned char>&);
-inline bool isDeflate(std::vector<unsigned char>&);
-
+inline std::vector<unsigned char> compressZSTD(std::vector<unsigned char>&);
+inline std::vector<unsigned char> compressZLIB(std::vector<unsigned char>&);
 
 struct NPKgame {
 	const char* name;
@@ -40,9 +48,11 @@ struct NPKgame {
 
 struct NPKentry {
 public:
-	std::vector<unsigned char> fileNameLength; // first 3 bytes, if byte 1 is 01 that means the file is compressed (mostly game dialogue
+	bool enableSegmentation = false;
 
-	std::string fileName;// represents the length pulled from fileNameLength
+	std::vector<unsigned char> fileNameLength;
+
+	std::string fileName;
 
 	std::vector<unsigned char> realSize; // the files real size after decryption and compression, should be 4 bytes RIGHT after fileName, little endian
 
@@ -53,13 +63,15 @@ public:
 	struct segmentData { // the amount of segmentData structs is created depending on sectionSize amount
 		std::vector<unsigned char> offset; // the offset of the ACTUAL data of the entry in the file
 
-		std::vector<unsigned char> alignedSize; // how big the file is with PKCS5 padding (fancy word for adding numbers at the
-		//end so the decryption block is 16 bytes)
+		std::vector<unsigned char> alignedSize; // how big the compressed/uncompressed file is with PKCS5 padding (fancy word for adding numbers at the
+		//end so the encryption block is 16 bytes)
 
-		std::vector<unsigned char> compressedSize; // how big the file actually is without the padding (will be important for decompression if thats the case)
+		std::vector<unsigned char> compressedSize; // how big the file actually is without the padding (will be important for compression if thats the case)
 
 		std::vector<unsigned char> decompressedSize; // entry after decompression
 	};
+
+	//std::vector<segmentData> segments;
 };
 
 static NPKgame games[] = {

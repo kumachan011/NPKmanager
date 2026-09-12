@@ -1,4 +1,4 @@
-A simple plug and play program allows you to UNPACK and REPACK Nitroplus .NPK files easily.
+A simple plug and play program that allows you to UNPACK and REPACK Nitroplus .NPK files easily.
 
 Currently supported games:
   - You and Me and Her: A Love Story

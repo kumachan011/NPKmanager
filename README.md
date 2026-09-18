@@ -3,6 +3,7 @@ A simple plug and play program that allows you to UNPACK and REPACK Nitroplus .N
 Currently supported games:
   - You and Me and Her: A Love Story
   - Tokyo Necro
+  - Song of Saya
 
 
 How to unpack .NPK files:

@@ -25,10 +25,19 @@ private:
 	unsigned int entryNumberDec = NULL;
 
 	inline void writeFileFunc(std::string path, std::string fileName, std::vector<unsigned char> fileData) {
+
+		//std::string fileNameTemp = fileName;
+
 		if (!std::filesystem::exists(path + fileName.substr(0, fileName.rfind("\\") + 1))) {
 			std::filesystem::create_directories(path + fileName.substr(0, fileName.rfind("\\") + 1));
 		}
-		writeFile.open(path + fileName, std::ios::binary);
+		//else if (std::filesystem::exists(path + fileNameTemp)) {
+			//fileNameTemp = fileNameTemp + "_NAMEDUPE";
+		//}
+		std::string fullPath = path + fileName;
+		std::u8string utf8(reinterpret_cast<const char8_t*>(fullPath.data()), fullPath.size());
+
+		writeFile.open(std::filesystem::path(utf8), std::ios::binary);
 		for (unsigned int i = 0; i < fileData.size(); i++) {
 			writeFile << fileData[i];
 		}
@@ -50,8 +59,8 @@ public:
 public:
 	inline void readHeader() {
 		int temphHeaderSize = headerSize;
-		while (readFile >> std::noskipws >> byte && temphHeaderSize > 0) {
-			NPKheader.push_back(byte);
+		while (readFile >> std::noskipws >> byteNext && temphHeaderSize > 0) {
+			NPKheader.push_back(byteNext);
 			temphHeaderSize--;
 		}
 		for (int i = 8; i < 24; i++) {
@@ -73,13 +82,17 @@ public:
 		unsigned long padded_size;
 
 		for (unsigned int i = 0; i < endOffset; i++) {
-			readFile >> byte;
-			fileArr.push_back(byte);
+			readFile >> byteNext;
+			fileArr.push_back(byteNext);
 		}
 
 		if (type == 0) { // decrypt entries and offsets
 			entryBuffer.resize(fileArr.size());
 			plusaes::decrypt_cbc(&fileArr[0], (long)fileArr.size(), &games[game].key[0], (long)32, &iv, &entryBuffer[0], (long)fileArr.size(), &padded_size);
+			/*writeFile.open("C:\\Users\\Kuma\\Desktop\\fun\\n.npk", std::ios::binary);
+			for (unsigned int i = 0; i < entryBuffer.size(); i++) {
+				writeFile << entryBuffer[i];
+			}*/
 			fileArr.clear();
 
 		} else if (type == 1) { // decrypt entry data itself
@@ -134,10 +147,13 @@ public:
 				tempEntryData.push_back(entries[i]);
 			}
 
+			
+			//std::string fileNameReal = reinterpret_cast<const char*>(tempEntryData.data() + 3), fLen;
+
 			NPKentry entry{
 				false,
 				std::vector<unsigned char>(tempEntryData.begin(), tempEntryData.begin() + 3),
-				std::string(tempEntryData.begin() + 3, tempEntryData.begin() + 3 + fLen),
+				std::string(reinterpret_cast<const char*>(tempEntryData.data() + 3), fLen),
 				std::vector<unsigned char>(tempEntryData.begin() + 3 + fLen, tempEntryData.begin() + 7 + fLen),
 				std::vector<unsigned char>(tempEntryData.begin() + 7 + fLen, tempEntryData.begin() + 39 + fLen),
 				std::vector<unsigned char>(tempEntryData.begin() + 39 + fLen, tempEntryData.begin() + 43 + fLen)
@@ -167,6 +183,9 @@ public:
 					std::cout << "Writing file entry " << entryIncrementor + 1 << "|" << entryNumberDec << ": " << entry.fileName << "\n";
 				}
 			}
+
+			//std::string fileNameReal =
+
 
 			std::string absoluteP = filePath.substr(0, filePath.rfind("\\") + 1);
 			std::replace(entry.fileName.begin(), entry.fileName.end(), '/', '\\');

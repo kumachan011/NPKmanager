@@ -15,6 +15,8 @@ private:
 	unsigned int segmentCounter = 0;
 	unsigned int sectionWritingStream = 0;
 
+	int totalEntries = 0;
+
 	std::ofstream writeFile;
 	std::ifstream readFile;
 
@@ -57,9 +59,18 @@ public:
 		}
 	}
 
+	inline void countEntries(auto& filepath) {
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(filepath)) {
+			if (entry.is_regular_file()) {
+				totalEntries++;
+			}
+		}
+	}
+
 	inline void startRepack(auto& filepath) {
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(filepath)) {
 			if (entry.is_regular_file()) {
+				
 				assembleEntryData(entry, fileCounter);
 				fileCounter++;
 			}
@@ -89,28 +100,37 @@ public:
 		std::string ext = std::filesystem::path(filepath).extension().string();
 
 		std::vector<unsigned char> fileData;
-		while (readFile >> std::noskipws >> byte) {
-			fileData.push_back(byte);
+		while (readFile >> std::noskipws >> byteNext) {
+			fileData.push_back(byteNext);
 		}
 
 		std::vector<unsigned char> writingFileData;
 
-		std::string entriesName = filepath.path().string().substr(filepath.path().string().rfind("media\\"));
+		std::u8string fileName = filepath.path().u8string();
+		std::vector<unsigned char> fileNameBytes(
+			reinterpret_cast<const unsigned char*>(fileName.data()),
+			reinterpret_cast<const unsigned char*>(fileName.data() + fileName.size())
+		);
+		std::string fileNameReal(fileNameBytes.begin(), fileNameBytes.end());
+
+		std::string entriesName = fileNameReal.substr(fileNameReal.rfind("media\\"));
 		std::replace(entriesName.begin(), entriesName.end(), '\\', '/');
 		unsigned short entriesNameLen = entriesName.length();
 		unsigned int fileSize = std::filesystem::file_size(filepath);
-		unsigned int sectionSize = std::ceil((float)((float)fileSize / ((float)chunk)));
+		unsigned int sectionSize;
 		
-		std::cout << "\nPacking entry : " << entriesName << "\n";
+		std::cout << "\nPacking entry " << entriesID << "|" << totalEntries << ": " << entriesName << "";
 		if (ext == ".nut") {
 			fileData = NUTpatcher(fileData);
 		}
 
 		if (ext != ".png" && ext != ".ogg" && ext != ".mpg" && ext != ".jpg") {
 			entries[entriesID].enableSegmentation = 0;
+			sectionSize = std::ceil((float)((float)fileSize / ((float)chunk)));
 		}
 		else {
 			entries[entriesID].enableSegmentation = 1;
+			sectionSize = 1;
 		}
 
 		entries[entriesID].fileNameLength.insert(entries[entriesID].fileNameLength.end(),
@@ -134,21 +154,25 @@ public:
 			reinterpret_cast<unsigned char*>(&sectionSize) + sizeof(sectionSize)
 		);
 
+
 		for (unsigned i = 0; i < sectionSize; i++) {
 			segments.emplace_back();
 			
 			std::vector<unsigned char> segmentData;
 
-			unsigned int dSize = fileSize - (chunk * i);
-			if (dSize > chunk) {
-				dSize = chunk;
-			}
-			segmentData.insert(segmentData.end(), fileData.begin() + chunk * i, fileData.begin() + chunk * i + dSize);
+			unsigned int dSize;
 
-			segments[segmentCounter].decompressedSize.insert(segments[segmentCounter].decompressedSize.end(),
-				reinterpret_cast<unsigned char*>(&dSize),
-				reinterpret_cast<unsigned char*>(&dSize) + sizeof(dSize)
-			);
+			if (entries[entriesID].enableSegmentation == false) {
+				dSize = fileSize - (chunk * i);
+				if (dSize > chunk) {
+					dSize = chunk;
+				}
+				segmentData.insert(segmentData.end(), fileData.begin() + chunk * i, fileData.begin() + chunk * i + dSize);
+			}
+			else {
+				dSize = fileSize;
+				segmentData.insert(segmentData.end(), fileData.begin(), fileData.end());
+			}
 
 			if (ext != ".png" && ext != ".ogg" && ext != ".mpg" && ext != ".jpg") {
 				switch (games[gameChoice].NPKver) {
@@ -160,6 +184,14 @@ public:
 					break;
 				}
 			}
+			else {
+				writingFileData = segmentData;
+			}
+
+			segments[segmentCounter].decompressedSize.insert(segments[segmentCounter].decompressedSize.end(),
+				reinterpret_cast<unsigned char*>(&dSize),
+				reinterpret_cast<unsigned char*>(&dSize) + sizeof(dSize)
+			);
 
 			unsigned int compressedFileSize = writingFileData.size();
 			segments[segmentCounter].compressedSize.insert(segments[segmentCounter].compressedSize.end(),
@@ -172,6 +204,7 @@ public:
 				reinterpret_cast<unsigned char*>(&alignedFileSize),
 				reinterpret_cast<unsigned char*>(&alignedFileSize) + sizeof(alignedFileSize)
 			);
+
 
 			writingFileData = encrypt(writingFileData, games[gameChoice].key);
 			writeToFile(writingFileData, newFileName);

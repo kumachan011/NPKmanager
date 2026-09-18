@@ -3,6 +3,8 @@
 
 int main() {
 
+	SetConsoleOutputCP(CP_UTF8);
+
 	srand(time(0));
 
 	while (stopProgram == false) {
@@ -82,18 +84,16 @@ int main() {
 			bool startRepack = false;
 			while (startRepack == false) {
 
-				std::cout << "\n\nPlease input the path of your media file. Make sure it is the item folder (eg. dx, script, cg), not the media folder! ";
+				std::cout << "\n\nPlease input the path of your media file. Make sure it is promptly named media and doesn't contain anything you don't want to pack! ";
 				std::getline(std::cin, filePath);
 				filePath.erase(std::remove(filePath.begin(), filePath.end(), '"'), filePath.end());
 
 				if (!std::filesystem::exists(filePath)) {
 					std::cout << "\nYour file path is not valid/doesn't exist!\n";
 				} else if (std::filesystem::is_directory(filePath)) {
-					if (filePath.substr(filePath.find_last_of("\\") + 1) == "media") {
-						std::cout << "\nI told you to not choose the media folder. Choose a folder inside it!\n";
-					} else if (filePath.find("media") == std::string::npos) {
-						std::cout << "\nThe current folder is not part of a media folder. You wouldn't want to pack something you didn't want now, right?\n";
-					} else if (filePath.substr(filePath.find_last_of("\\") + 1) != "media" && filePath.find("media") != std::string::npos) startRepack = true;
+					if (filePath.find("media") == std::string::npos) {
+						std::cout << "\nThe current folder is not a media folder. You wouldn't want to pack something you didn't want now, right?\n";
+					} else if (filePath.find("media") != std::string::npos) startRepack = true;
 				}
 			}
 
@@ -104,6 +104,7 @@ int main() {
 			NPKrepack NPK(filePath);
 			NPK.allocateEntryBytes();
 			NPK.randomiseIV(ivSize);
+			NPK.countEntries(filePath);
 			NPK.startRepack(NPK.file);
 			NPK.finishWrite(NPK.fileCounter, NPK.folderCounter);
 
@@ -121,6 +122,6 @@ int main() {
 			std::cout << "\n\n";
 		}
 	}
-
+	
 	return 0;
 }

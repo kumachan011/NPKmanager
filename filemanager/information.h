@@ -44,7 +44,7 @@ inline std::vector<unsigned char> compressZLIB(std::vector<unsigned char>&);
 struct NPKgame {
 	const char* name;
 	unsigned short NPKver;
-	const std::vector<unsigned char> key;
+	std::vector<unsigned char> key;
 };
 
 struct NPKentry {
@@ -76,6 +76,7 @@ public:
 };
 
 static NPKgame games[] = {
+	{"Set your own game configuration", NULL, {}},
 	{"You and Me and Her: a Love Story", 3, {
 		0xE7, 0xE8, 0xA5, 0xF9, 0x9B, 0xAF, 0x7C, 0x73,
 		0xAE, 0x6B, 0xDF, 0x3D, 0x8C, 0x90, 0x26, 0x2F,

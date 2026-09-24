@@ -22,6 +22,38 @@ int main() {
 			gameChoice = _getch();
 			gameChoice = gameChoice - '0';
 
+			if (gameChoice == 0) {
+				bool customPass = false;
+				while (customPass == false) {
+					std::string keyString;
+					unsigned char npkVer;
+					std::cout << "Please insert the custom key. You can get an unknown game key with the KeyFinderInjector.exe program!\n";
+
+					std::getline(std::cin, keyString);
+					keyString.erase(std::remove(keyString.begin(), keyString.end(), ','), keyString.end());
+					keyString.erase(std::remove(keyString.begin(), keyString.end(), ' '), keyString.end());
+					if (keyString.size() != 64) {
+						std::cout << "\nKey size is not 32 bytes. Please make sure you have inserted it properly.\n\n";
+					}
+					else {
+						for (unsigned int i = 0; i < 32; i++) {
+							games[0].key.push_back(static_cast<unsigned char>(std::stoul(keyString.substr(i * 2, 2), nullptr, 16)));
+						}
+
+						std::cout << "\nPlease insert the desired NPK version. You can find it with the KeyFinderInjector.exe program, or by checking the first 4 bytes of an NPK file from your game.\nNPK version must be either 2 or 3.\n";
+						npkVer = _getch();
+						npkVer = npkVer - '0';
+						games[0].NPKver = npkVer;
+						if (npkVer != 2 && npkVer != 3) {
+							std::cout << "\nI just told you that the NPK version can only be 2 or 3...\n\n";
+						}
+						else {
+							customPass = true;
+						}
+					}
+				}
+			}
+
 			if (gameChoice < sizeof(games) / sizeof(NPKgame)) {
 				std::cout << "\nSelected game: " << games[gameChoice].name;
 				std::cout << "\n\nWhat do you want to do with the selected game?\n\n	0:	Unpack NPK\n\n	1:	Repack NPK\n";

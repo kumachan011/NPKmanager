@@ -3,10 +3,13 @@ A simple plug and play program that allows you to UNPACK and REPACK Nitroplus .N
 Currently supported games:
   - You and Me and Her: A Love Story
   - Tokyo Necro
+  - Song of Saya
 
 
 How to unpack .NPK files:
     - It's as easy as just drag and dropping the file into the command prompt.
+     <img width="853" height="592" alt="image" src="https://github.com/user-attachments/assets/9a46241b-0b2c-4b5f-a265-a279d46ddd5d" />
+
 
 How to repack .NPK files:
     - You can drag and drop the folder you want to pack. Make sure the folder is contained inside the media folder, otherwise it will error out.

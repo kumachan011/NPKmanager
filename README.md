@@ -1,4 +1,4 @@
-A simple plug and play program that allows you to UNPACK and REPACK Nitroplus .NPK files easily, as well as find the decryption keys of those games.
+A simple plug and play program that allows you to UNPACK and REPACK Nitroplus .NPK archives easily, as well as find the decryption keys of those games.
 
 The program allows you to insert your own decryption key and NPK version, but there are a few officially supported games.
 Currently supported games:
@@ -30,5 +30,5 @@ Plans for the future:
   - add automatic game detection
   - UI
 
-If any errors or bugs are encountered, please create an Ussue, and I will try and fix it right away or tell you if you did something wrong.
+If any errors or bugs are encountered, or even just for suggestions, please create an Issue, and I will try and fix it right away or tell you if you did something wrong.
 If you use the MwareKeyFinder.dll on any Nitroplus game which is not supported yet, please post the decryption key and NPK version found in the Issues section of this repository!
